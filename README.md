@@ -19,4 +19,5 @@ Many thanks to Tore (cr33y) and Christian Kiß for the great help with the input
 Further ideas and suggestions for improvement are very welcome.
 
 Translated with www.DeepL.com/Translator - Thanks:-)
+
 KALI LINUX™ is a trademark of Offensive Security.
