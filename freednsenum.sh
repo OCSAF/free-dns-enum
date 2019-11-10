@@ -397,7 +397,7 @@ if [ "${_DOMAIN}" != "" ] && [ "${_OSINT}" == "" ]; then
 	done <${_LIST}
 	if [ -d "./free_enums/${_domain}" ]; then
 		echo -e "${yON}All found IPs were saved in:${cOFF}" 
-		echo "|_ [./free_enums/${_domain}/ip_list_${_domain}.txt]"
+		echo "|_ [./free_enums/${_DOMAIN}/ip_list_${_DOMAIN}.txt]"
 		echo ""
 	fi
 elif [ "${_OSINT}" != "" ]; then
