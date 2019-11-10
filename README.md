@@ -15,6 +15,7 @@ The easiest way is to briefly display the Help.
 
     ./freednsenum.sh -h
     
+Many thanks to Tore (cr33y) and Christian Kiß for the great help with the input-lists and special thanks to the community.
 Further ideas and suggestions for improvement are very welcome.
 
 Translated with www.DeepL.com/Translator - Thanks:-)
