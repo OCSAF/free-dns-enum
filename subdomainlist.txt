@@ -1,4 +1,5 @@
-abba
+a
+aa
 abuse
 access
 account
@@ -273,6 +274,10 @@ myaccount
 mysql
 nagios
 nameserver
+nameserver1
+nameserver2
+nameserver01
+nameserver02
 nas
 nav
 navision
@@ -284,7 +289,7 @@ netscaler01
 netscaler1
 news
 newsletter
-nexcloud
+nextcloud
 ns
 ns1
 ns2
@@ -294,6 +299,7 @@ ntp
 ntp1
 ntp2
 oci
+old
 omsa
 onedrive
 online
@@ -459,6 +465,7 @@ voip
 vpn
 waf
 wartung
+watch
 wd
 web
 webadmin
@@ -491,6 +498,7 @@ www4
 wwww
 xclarity
 xi
+zabbix
 zabix
 zugang
 zyxel

@@ -57,7 +57,7 @@ fi
 
 funcHelp() {
 	echo "From the Free OCSAF project"
-	echo "Free OCSAF DNSENUM 0.1 - GPLv3 (https://freecybersecurity.org)"
+	echo "Free OCSAF DNSENUM 0.2 - GPLv3 (https://freecybersecurity.org)"
 	echo "Use only with legal authorization and at your own risk!"
        	echo "ANY LIABILITY WILL BE REJECTED!"
        	echo ""
@@ -84,7 +84,7 @@ funcHelp() {
 	echo "  -c, no color scheme set"
        	echo ""
 	echo "NOTES:"
-	echo "#See also the MAN PAGE - https://freecybersecurity.org"
+	echo "#See also - https://freecybersecurity.org"
 }
 
 ###############################
@@ -167,13 +167,94 @@ fi
 ### freednsenum functions ###
 #############################
 
+funcWhois() {
+	local _ipcheck=${1}
+	local _subdomain=${2}
+	local _domain=${_DOMAIN}
+	local _whoisfile
+	local _inetnum
+	local _netname
+	local _orgname
+	local _country
+	local _route
+	local _asn
+
+	whois ${_ipcheck} > ./free_enums/${_domain}/whois_${_subdomain}_${_domain}.txt
+				
+	_whoisfile="./free_enums/${_domain}/whois_${_subdomain}_${_domain}.txt"
+	_inetnum=$(cat ${_whoisfile} \
+		| grep -i 'inetnum:\|netrange:')
+	_orgname=$(cat ${_whoisfile} \
+		| grep -i -m1 'org-name:\|orgname:\|descr:\|owner:')
+	_netname=$(cat ${_whoisfile} \
+		| grep -v ownerid, \
+		| grep -i 'netname:\|ownerid:')
+	_country=$(cat ${_whoisfile} \
+		| grep -i country)
+	_route=$(cat ${_whoisfile} \
+		| grep -v mnt-route \
+		| grep -i -m1 'route:\|cidr:')
+	_asn=$(cat ${_whoisfile} \
+		| grep -i -m1 'origin:\|OriginAS:\|aut-num:')
+			
+	echo "WHOIS [${_subcheck}]:"
+	echo "|_ ${_inetnum}"
+	echo "|_ ${_orgname}"
+	echo "|_ ${_netname}"
+	echo "|_ ${_country}"
+	echo "|_ ${_route}"
+	echo "|_ ${_asn}"
+}
+
+funcGeoIP() {
+	local _geoipcheck=${1}
+	local _geoip_country
+	local _geoip_countrycode
+
+	echo "GEOIP [${_geoipcheck}]:"
+	_geoip_country=$(geoiplookup ${_geoipcheck} | cut -d " " -f5)
+	_geoip_countrycode=$(geoiplookup ${_geoipcheck} | cut -d " " -f4 | cut -d "," -f1)
+	echo "|_ ${_geoip_country} (${_geoip_countrycode})"
+}
+
+funcPhishingCheck() {
+	local _checkdomain=${1}
+	local _mx
+	local _spf
+	local _spfvalue
+
+	_mx=($(dig -t mx ${_checkdomain} +noall +answer | grep "IN" | grep "MX" | sort -V))
+	_spf=$(host -t txt ${_checkdomain} | grep -i "spf" | awk -F 'text' '{print $2}')
+	_spfvalue=($(echo ${_spf} | grep -oE " .all| redirect"))
+	
+	if [ "${_spf}" == "" ] && [ "${_mx}" != "" ]; then	
+		echo "PHISHING:"
+		echo -n "|_ "
+		echo -e "${rON}Phishing possible!${cOFF}"
+		echo "|_ MX active and SPF not set"
+	elif [ "${_spf}" != "" ] && [ "${_mx}" == "" ]; then
+		echo "PHISHING:"
+		echo -n "|_ "
+		echo -e "${gON}Phishing not possible!${cOFF}"
+		echo "|_ SPF:${_spf}"
+	elif [ "${_spf}" != "" ] && [ "${_mx}" != "" ]; then
+		echo "PHISHING:"
+		echo -n "|_ "
+		echo -e "${gON}Phishing not possible!${cOFF}"
+		echo "|_ SPF:${_spf}"
+	elif [ "${_spf}" == "" ] && [ "${_mx}" == "" ]; then
+		echo "PHISHING:"
+		echo "|_ MX and SPF not set"
+	fi
+}
+
 funcDNSEnumA() {
 
 	local _subdomain=${1}
 	local _domain=${_DOMAIN}
-	local _ip=${_IP}
 	local _whois=${_WHOIS}
 	local _geoip=${_GEOIP}
+	local _ip=${_IP}
 	local _verbose=${_VERBOSE}
 	local _time=${_TIME}
 	local _acheck
@@ -182,14 +263,8 @@ funcDNSEnumA() {
 	local _aliascheck
 	local _aliascheck2
 	local _noacheck
-	local _inetnum
-	local _netname
-	local _orgname
-	local _country
-	local _route
-	local _geoip_country
-	local _geoip_countrycode
 	local _line
+	local _whoisfile
 	
 	host -t a ${_subdomain}.${_domain} > ./free_temp/acheck_${_subdomain}_${_domain}_${_time}.txt
 	
@@ -220,35 +295,15 @@ funcDNSEnumA() {
 				-o ./free_enums/${_domain}/ip_list_${_domain}.txt
 
 			if [ "${_geoip}" == "1" ]; then
-				echo "GEOIP [${_subcheck}]:"
-				_geoip_country=$(geoiplookup ${_subcheck} | cut -d " " -f5)
-				_geoip_countrycode=$(geoiplookup ${_subcheck} | cut -d " " -f4 | cut -d "," -f1)
-				echo "|_ ${_geoip_country} (${_geoip_countrycode})"
+				funcGeoIP ${_subcheck}
 			fi
 
 			if [ "${_whois}" == "1" ]; then
+				funcWhois ${_subcheck} ${_subdomain}
+			fi
 
-				whois ${_subcheck} > ./free_enums/${_domain}/whois_${_subdomain}_${_domain}.txt
-				
-				_whoisfile="./free_enums/${_domain}/whois_${_subdomain}_${_domain}.txt"
-				_inetnum=$(cat ${_whoisfile} \
-					| grep -i 'inetnum\|netrange')
-				_netname=$(cat ${_whoisfile} \
-					| grep -i netname)
-				_orgname=$(cat ${_whoisfile} \
-					| grep -i -m1 'org-name\|orgname\|descr')
-				_country=$(cat ${_whoisfile} \
-					| grep -i country)
-				_route=$(cat ${_whoisfile} \
-					| grep -v mnt-route \
-					| grep -i -m1 'route\|cidr')
-			
-				echo "WHOIS [${_subcheck}]:"
-				echo "|_ ${_inetnum}"
-				echo "|_ ${_orgname}"
-				echo "|_ ${_netname}"
-				echo "|_ ${_country}"
-				echo "|_ ${_route}"
+			if [ "${_verbose}" == "1" ]; then
+				funcPhishingCheck ${_subdomain}.${_domain}
 			fi
 			echo ""
 		fi
@@ -265,13 +320,9 @@ funcDNSEnumA() {
 					| cut -d " " -f6)
 				if [ "${_aliascheck2}" != "" ]; then
 					echo "${_aliascheck2}"
-
 					if [ "${_geoip}" == "1" ]; then
-						echo "GEOIP [${_aliascheck2}]:"
-						_geoip_country=$(geoiplookup ${_aliascheck2} | cut -d " " -f5)
-						_geoip_countrycode=$(geoiplookup ${_aliascheck2} | cut -d " " -f4 | cut -d "," -f1)
-						echo "|_ ${_geoip_country} (${_geoip_countrycode})"
-					fi	
+						funcGeoIP ${_aliascheck2}
+					fi
 				fi
 				unset _line
 			done < ${_alist}
@@ -280,6 +331,9 @@ funcDNSEnumA() {
 	
 		if [ "${_noacheck}" != "" ]; then
 			echo -e "${yON}${_noacheck}${cOFF}"
+			if [ "${_verbose}" == "1" ]; then
+				funcPhishingCheck ${_subdomain}.${_domain}
+			fi
 			echo ""
 		fi
 	fi
@@ -292,6 +346,9 @@ funcTLDEnumA() {
 	local _tld=${1}
 	local _domain=${_DOMAIN}
 	local _name=${_NAME}
+	local _verbose=${_VERBOSE}
+	local _whois=${_WHOIS}
+	local _geoip=${_GEOIP}
 	local _time=${_TIME}
 	local _acheck
 	local _subcheck
@@ -306,11 +363,26 @@ funcTLDEnumA() {
 		| grep -i alias)
 
 	if [ "${_subcheck}" != "" ]; then
-		echo "${_name}${_tld} (${_subcheck}) active"
+		echo -e "${yON}${_name}${_tld} (${_subcheck}) active${cOFF}"
+		if [ "${_geoip}" == "1" ]; then
+			funcGeoIP ${_subcheck}
+		fi
+		
+		if [ "${_whois}" == "1" ]; then
+			funcWhois ${_subcheck}
+		fi
+		
+		if [ "${_verbose}" == "1" ]; then
+			funcPhishingCheck ${_name}${_tld}
+		fi
 	fi
 
 	if [ "${_aliascheck}" != "" ]; then
 			echo -e "${yON}${_aliascheck}${cOFF}"
+			
+			if [ "${_verbose}" == "1" ]; then
+				funcPhishingCheck ${_subdomain}.${_domain}
+			fi
 	fi
 }
 
@@ -381,7 +453,7 @@ echo ""
 echo "##########################################"
 echo "####  FREE OCSAF DNSENUM GPLv3        ####"
 echo "####  https://freecybersecurity.org   ####"
-echo "####  Version 0.1 (10.11.19)          ####"
+echo "####  Version 0.2 (28.09.21)          ####"
 echo "##########################################"
 echo ""
 
